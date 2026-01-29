@@ -1,0 +1,216 @@
+#docker-compose up -d
+#docker-compose stop
+
+name: db_stack_dev
+
+services:
+
+  # ---------- BASES DE DATOS ----------
+
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      MYSQL_DATABASE: "mydb"
+      MYSQL_USER: "db_user"
+      MYSQL_PASSWORD: "204753"
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db-init/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - db_net  
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: "gps_db"
+      POSTGRES_USER: "db_user"
+      POSTGRES_PASSWORD: "204753"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db-init/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - db_net  
+
+  # ---------- KAFKA ----------
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - app_net  
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - app_net  
+
+  # ---------- API GATEWAY ----------
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-ms
+      - backup-ms
+      - device-ms
+      - vehicle-ms
+      - tracking-ms
+      - alert-ms
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080  
+    networks:
+      - app_net
+      - db_net  
+
+  # ---------- MICROSERVICIOS ----------
+
+  user-ms:
+    build:
+      context: ./user-ms
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: user-ms
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql-db
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:mysql://mysql-db:3306/mydb
+      QUARKUS_DATASOURCE_USERNAME: db_user
+      QUARKUS_DATASOURCE_PASSWORD: 204753
+    networks:
+      - app_net
+      - db_net  
+
+  backup-ms:
+    build:
+      context: ./user-backup-ms
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: user-backup-ms
+    ports:
+      - "8082:8080"
+    depends_on:
+      - mysql-db
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:mysql://mysql-db:3306/mydb
+      QUARKUS_DATASOURCE_USERNAME: db_user
+      QUARKUS_DATASOURCE_PASSWORD: 204753  
+    networks:
+      - app_net
+      - db_net  
+
+  device-ms:
+    build:
+      context: ./device-ms
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: device-ms
+    ports:
+      - "8083:8080"
+    depends_on:
+      - postgres-db
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-db:5432/gps_db
+      QUARKUS_DATASOURCE_USERNAME: db_user
+      QUARKUS_DATASOURCE_PASSWORD: 204753
+    networks:
+      - app_net
+      - db_net  
+
+  vehicle-ms:
+    build:
+      context: ./vehicle-ms
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: vehicle-ms
+    ports:
+      - "8084:8080"
+    depends_on:
+      - postgres-db
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-db:5432/gps_db
+      QUARKUS_DATASOURCE_USERNAME: db_user
+      QUARKUS_DATASOURCE_PASSWORD: 204753
+    networks:
+      - app_net
+      - db_net   
+
+  tracking-ms:
+    build:
+      context: ./tracking-ms
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: tracking-ms
+    ports:
+      - "8085:8080"
+    depends_on:
+      - postgres-db
+      - kafka
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-db:5432/gps_db
+      QUARKUS_DATASOURCE_USERNAME: db_user
+      QUARKUS_DATASOURCE_PASSWORD: 204753
+    networks:
+      - app_net
+      - db_net   
+
+  alert-ms:
+    build:
+      context: ./alert-ms
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: alert-ms
+    ports:
+      - "8086:8080"
+    depends_on:
+      - postgres-db
+      - kafka
+    environment:
+      QUARKUS_HTTP_HOST: 0.0.0.0
+      QUARKUS_HTTP_PORT: 8080
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-db:5432/gps_db
+      QUARKUS_DATASOURCE_USERNAME: db_user
+      QUARKUS_DATASOURCE_PASSWORD: 204753
+    networks:
+      - app_net
+      - db_net   
+
+volumes:
+  mysql-data:
+  postgres-data:
+  
+networks:
+  db_net:
+    driver: bridge
+  app_net:
+    driver: bridge  
