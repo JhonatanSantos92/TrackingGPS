@@ -1,10 +1,15 @@
 package com.gps.tracking.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
-public class CreateMonitoringDTO {
+public class MonitoringDTO {
+
+    public Long id;
     public Long assignmentId;
     public BigDecimal latitud;
     public BigDecimal longitud;
     public BigDecimal velocidad;
+    public LocalDateTime fecha;
+
 }
