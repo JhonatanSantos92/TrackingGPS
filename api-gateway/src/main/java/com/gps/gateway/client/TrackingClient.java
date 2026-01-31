@@ -1,6 +1,6 @@
 package com.gps.gateway.client;
 
-import com.gps.gateway.dto.TrackingDTO;
+import com.gps.gateway.dto.*;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
@@ -15,24 +15,24 @@ public interface TrackingClient {
     List<TrackingDTO> getAll();
 
     @GET
-    @Path("/{id}")
+    @Path("/assignment/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    TrackingDTO getById(@PathParam("id") Long id);
+    TrackingDTO[] getByAssignment(@PathParam("id") Long assignmentId);
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    void create(TrackingDTO dto);
-
-    @PUT
-    @Path("/{id}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    void update(@PathParam("id") Long id, TrackingDTO dto);
-
-    @DELETE
-    @Path("/{id}")
-    void delete(@PathParam("id") Long id);
+    @Path("/assignment")
+    AssignmentDTO createAssignment(CreateAssignmentDTO dto);
 
     @GET
-    @Path("/last")
-    TrackingDTO getLastByVehicle(@QueryParam("vehicleId") Long vehicleId);
+    @Path("/assignment")
+    List<AssignmentDTO> listAssignments();
+
+    @POST
+    @Path("/position")
+    MonitoringDTO createMonitoring(CreateMonitoringDTO dto);
+
+    @GET
+    @Path("/position")
+    List<MonitoringDTO> listMonitoring();
+
 }

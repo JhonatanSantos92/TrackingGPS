@@ -19,16 +19,4 @@ public interface AlertsClient {
     @Produces(MediaType.APPLICATION_JSON)
     AlertDTO getById(@PathParam("id") Long id);
 
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    void create(AlertDTO dto);
-
-    @PUT
-    @Path("/{id}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    void update(@PathParam("id") Long id, AlertDTO dto);
-
-    @DELETE
-    @Path("/{id}")
-    void delete(@PathParam("id") Long id);
 }

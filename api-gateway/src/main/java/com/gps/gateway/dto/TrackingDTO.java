@@ -2,9 +2,9 @@ package com.gps.gateway.dto;
 
 public class TrackingDTO {
     public Long id;
-    public Long vehicleId;
-    public Long deviceId;
+    public DeviceDTO device;
+    public VehicleDTO vehicle;
     public String latitud;
     public String longitud;
-    public String fechaHora;
+    public String fecha;
 }

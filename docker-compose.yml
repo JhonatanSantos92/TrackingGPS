@@ -81,7 +81,7 @@ services:
     networks:
       - app_net
 
-    alert-ms:
+  alert-ms:
     build:
       context: ./alert-ms
       dockerfile: src/main/docker/Dockerfile.jvm

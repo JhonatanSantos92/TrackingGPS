@@ -2,7 +2,6 @@ package com.gps.gateway.resource;
 
 import com.gps.gateway.client.DeviceClient;
 import com.gps.gateway.dto.DeviceDTO;
-
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;

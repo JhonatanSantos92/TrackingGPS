@@ -5,5 +5,5 @@ public class VehicleDTO {
     public String placa;
     public String marca;
     public String modelo;
-    public String status;
+    public String estado;
 }
