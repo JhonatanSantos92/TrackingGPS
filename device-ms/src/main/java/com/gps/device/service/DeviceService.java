@@ -3,6 +3,7 @@ package com.gps.device.service;
 import com.gps.device.dto.CreateDeviceDTO;
 import com.gps.device.dto.UpdateDeviceDTO;
 import com.gps.device.entity.Device;
+import com.gps.device.exception.BusinessException;
 import com.gps.device.repository.DeviceRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -33,13 +34,25 @@ public class DeviceService {
     }
 
     public Device get(Long id) {
-        return repository.findById(id);
+        Device device = repository.findById(id);
+        if (device == null) {
+            throw new BusinessException(404,
+                    "USER_NOT_FOUND",
+                    "User not found with id: " + id
+            );
+        }
+        return device;
     }
 
     @Transactional
     public Device update(Long id, UpdateDeviceDTO dto) {
         Device device = repository.findById(id);
-        if (device == null) return null;
+        if (device == null) {
+            throw new BusinessException(404,
+                    "USER_NOT_FOUND",
+                    "User not found with id: " + id
+            );
+        }
         device.modelo = dto.modelo != null ? dto.modelo : device.modelo;
         device.estado = dto.estado != null ? dto.estado : device.estado;
         return device;

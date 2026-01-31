@@ -3,6 +3,7 @@ package com.gps.vehicle.service;
 import com.gps.vehicle.dto.CreateVehicleDTO;
 import com.gps.vehicle.dto.UpdateVehicleDTO;
 import com.gps.vehicle.entity.Vehicle;
+import com.gps.vehicle.exception.BusinessException;
 import com.gps.vehicle.repository.VehicleRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -34,13 +35,25 @@ public class VehicleService {
     }
 
     public Vehicle get(Long id) {
-        return repository.findById(id);
+        Vehicle vehicle =  repository.findById(id);
+        if (vehicle == null) {
+            throw new BusinessException(404,
+                    "USER_NOT_FOUND",
+                    "User not found with id: " + id
+            );
+        }
+        return vehicle;
     }
 
     @Transactional
     public Vehicle update(Long id, UpdateVehicleDTO dto) {
         Vehicle vehicle = repository.findById(id);
-        if (vehicle == null) return null;
+        if (vehicle == null) {
+            throw new BusinessException(404,
+                    "USER_NOT_FOUND",
+                    "User not found with id: " + id
+            );
+        }
         vehicle.marca = dto.marca != null ? dto.marca : vehicle.marca;
         vehicle.modelo = dto.modelo != null ? dto.modelo : vehicle.modelo;
         vehicle.annio = dto.annio != null ? dto.annio : vehicle.annio;

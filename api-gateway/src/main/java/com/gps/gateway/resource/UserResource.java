@@ -1,5 +1,6 @@
 package com.gps.gateway.resource;
 
+import com.gps.gateway.client.BackupClient;
 import com.gps.gateway.client.UserClient;
 import com.gps.gateway.dto.UserDTO;
 
@@ -20,6 +21,10 @@ public class UserResource {
     @RestClient
     UserClient userClient;
 
+    @Inject
+    @RestClient
+    BackupClient backupClient;
+
     @GET
     public List<UserDTO> getAll() {
         return userClient.getAll();
@@ -33,8 +38,13 @@ public class UserResource {
 
     @POST
     public Response create(UserDTO dto) {
-        userClient.create(dto);
-        return Response.status(Response.Status.CREATED).build();
+        try {
+            userClient.create(dto);
+            return Response.status(Response.Status.CREATED).build();
+        } catch (Exception e) {
+            backupClient.backup(dto);
+            return Response.status(Response.Status.CREATED).build();
+        }
     }
 
     @PUT
