@@ -5,8 +5,6 @@ name: db_stack_dev
 
 services:
 
-  # ---------- BASES DE DATOS ----------
-
   mysql-db:
     image: mysql:8.0
     container_name: mysql-db
@@ -22,7 +20,7 @@ services:
       - mysql-data:/var/lib/mysql
       - ./db-init/mysql:/docker-entrypoint-initdb.d
     networks:
-      - db_net  
+      - db_net
 
   postgres-db:
     image: postgres:16
@@ -37,32 +35,52 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./db-init/postgres:/docker-entrypoint-initdb.d
     networks:
-      - db_net  
-
-  # ---------- KAFKA ----------
+      - db_net
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     networks:
-      - app_net  
+      - app_net
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - "9092:9092"     # host (localhost)
+      - "29092:29092"   # docker network
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+  
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+  
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
     networks:
-      - app_net  
+      - app_net
 
-  # ---------- API GATEWAY ----------
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui-v1
+    ports:
+      - "6080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      - kafka
+    networks:
+      - app_net
 
   api-gateway:
     build:
@@ -81,12 +99,10 @@ services:
     environment:
       QUARKUS_PROFILE: docker
       QUARKUS_HTTP_HOST: 0.0.0.0
-      QUARKUS_HTTP_PORT: 8080  
+      QUARKUS_HTTP_PORT: 8080
     networks:
       - app_net
-      - db_net  
-
-  # ---------- MICROSERVICIOS ----------
+      - db_net
 
   user-ms:
     build:
@@ -106,7 +122,7 @@ services:
       QUARKUS_DATASOURCE_PASSWORD: 204753
     networks:
       - app_net
-      - db_net  
+      - db_net
 
   backup-ms:
     build:
@@ -123,10 +139,10 @@ services:
       QUARKUS_HTTP_PORT: 8080
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:mysql://mysql-db:3306/mydb
       QUARKUS_DATASOURCE_USERNAME: db_user
-      QUARKUS_DATASOURCE_PASSWORD: 204753  
+      QUARKUS_DATASOURCE_PASSWORD: 204753
     networks:
       - app_net
-      - db_net  
+      - db_net
 
   device-ms:
     build:
@@ -146,7 +162,7 @@ services:
       QUARKUS_DATASOURCE_PASSWORD: 204753
     networks:
       - app_net
-      - db_net  
+      - db_net
 
   vehicle-ms:
     build:
@@ -166,7 +182,7 @@ services:
       QUARKUS_DATASOURCE_PASSWORD: 204753
     networks:
       - app_net
-      - db_net   
+      - db_net
 
   tracking-ms:
     build:
@@ -182,13 +198,12 @@ services:
       QUARKUS_PROFILE: docker
       QUARKUS_HTTP_HOST: 0.0.0.0
       QUARKUS_HTTP_PORT: 8080
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-db:5432/gps_db
       QUARKUS_DATASOURCE_USERNAME: db_user
       QUARKUS_DATASOURCE_PASSWORD: 204753
     networks:
       - app_net
-      - db_net   
+      - db_net
 
   alert-ms:
     build:
@@ -204,20 +219,19 @@ services:
       QUARKUS_PROFILE: docker
       QUARKUS_HTTP_HOST: 0.0.0.0
       QUARKUS_HTTP_PORT: 8080
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres-db:5432/gps_db
       QUARKUS_DATASOURCE_USERNAME: db_user
       QUARKUS_DATASOURCE_PASSWORD: 204753
     networks:
       - app_net
-      - db_net   
+      - db_net
 
 volumes:
   mysql-data:
   postgres-data:
-  
+
 networks:
   db_net:
     driver: bridge
   app_net:
-    driver: bridge  
+    driver: bridge

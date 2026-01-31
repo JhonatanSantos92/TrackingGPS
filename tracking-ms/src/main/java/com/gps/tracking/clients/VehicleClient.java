@@ -17,7 +17,6 @@ public interface VehicleClient {
 
     @GET
     @Path("/{id}")
-    @Timeout(1000)
     @Retry(maxRetries = 1, delay = 200)
     VehicleDTO getById(@PathParam("id") Long id);
 }
