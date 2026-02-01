@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: jsw-gps
+  name: vehicle-config
+data:
+  DB_URL: "jdbc:postgresql://postgres:5432/gps_db"

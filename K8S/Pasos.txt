@@ -1,0 +1,39 @@
+PASO 0: MINIKUBE
+============================================================
+minikube start
+minikube dashboard
+ 
+PASO 1: NAMESPACE
+============================================================
+kubectl apply -f .\01.-namespace.yaml
+kubectl config set-context --current --namespace=jsw-gps
+
+PASO 2: BASE DE DATOS
+============================================================
+kubectl apply -f .\02.-postgres-secret.yaml
+kubectl apply -f .\03.-postgres-statefulset.yaml
+kubectl apply -f .\04.-postgres-service.yaml
+
+2.1: Ingramosa a la BD y creamos nuestras tablas
+kubectl exec -it postgres-0 -n jsw-gps -- sh
+psql -U db_user
+CREATE DATABASE gps_db;
+\c gps_db
+query de creación e inserción
+exit
+
+PASO 3: MICROSERVICIO
+============================================================
+kubectl apply -f .\05.-vehicle-secret.yaml
+kubectl apply -f .\06.-vehicle-config.yaml
+kubectl apply -f .\07.-vehicle-deployment.yaml
+kubectl apply -f .\08.-vehicle-service.yaml
+
+kubectl get all -> ver toda la configuración
+kubectl logs pod/vehicle-55dd79bf76-czskf -> validar el pod
+
+kubectl exec -it vehicle-55dd79bf76-czskf -- sh
+curl http://vehicle-service:8084/api/vehicles -> validar endpoint
+
+kubectl port-forward pod/vehicle-55dd79bf76-czskf 8084:8084
+kubectl port-forward pod/vehicle-55dd79bf76-czskf -n jsw-gps 8084:8084
