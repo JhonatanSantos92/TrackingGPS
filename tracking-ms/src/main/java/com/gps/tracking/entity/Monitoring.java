@@ -1,6 +1,5 @@
 package com.gps.tracking.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -8,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "monitoreo")
-public class Monitoring extends PanacheEntityBase {
+public class Monitoring {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

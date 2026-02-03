@@ -1,6 +1,7 @@
 package com.gps.tracking.clients;
 
 import com.gps.tracking.dto.UserDTO;
+import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.*;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import jakarta.ws.rs.core.MediaType;
@@ -13,5 +14,5 @@ public interface UserClient {
 
     @GET
     @Path("/{id}")
-    UserDTO getById(@PathParam("id") Long id);
+    Uni<UserDTO> getById(@PathParam("id") Long id);
 }

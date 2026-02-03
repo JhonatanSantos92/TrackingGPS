@@ -1,5 +1,6 @@
 package com.gps.tracking.kafka;
 
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -12,7 +13,8 @@ public class GpsEventProducer {
     @Channel("gps-events")
     Emitter<GpsEvent> emitter;
 
-    public void send(GpsEvent event) {
+    public Uni<Boolean> send(GpsEvent event) {
         emitter.send(event);
+        return Uni.createFrom().item(true);
     }
 }

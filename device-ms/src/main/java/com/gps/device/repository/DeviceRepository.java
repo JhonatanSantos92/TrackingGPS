@@ -1,7 +1,7 @@
 package com.gps.device.repository;
 
 import com.gps.device.entity.Device;
-import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import io.quarkus.hibernate.reactive.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped

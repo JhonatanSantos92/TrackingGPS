@@ -7,4 +7,10 @@ public class UserDTO {
     public String correo;
     public String status;
 
+    public UserDTO() {
+    }
+
+    public UserDTO(Long id) {
+        this.id = id;
+    }
 }

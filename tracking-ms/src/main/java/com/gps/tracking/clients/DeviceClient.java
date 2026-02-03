@@ -1,6 +1,7 @@
 package com.gps.tracking.clients;
 
 import com.gps.tracking.dto.DeviceDTO;
+import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -18,6 +19,6 @@ public interface DeviceClient {
     @Path("/{id}")
     @Retry(maxRetries = 1, delay = 200)
     @Produces(MediaType.APPLICATION_JSON)
-    DeviceDTO getById(@PathParam("id") Long id);
+    Uni<DeviceDTO> getById(@PathParam("id") Long id);
 
 }
