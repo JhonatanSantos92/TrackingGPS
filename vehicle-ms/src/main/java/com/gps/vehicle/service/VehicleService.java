@@ -5,63 +5,82 @@ import com.gps.vehicle.dto.UpdateVehicleDTO;
 import com.gps.vehicle.entity.Vehicle;
 import com.gps.vehicle.exception.BusinessException;
 import com.gps.vehicle.repository.VehicleRepository;
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
+import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.transaction.Transactional;
+import jakarta.inject.Inject;
 
 import java.util.List;
 
 @ApplicationScoped
 public class VehicleService {
 
-    private final VehicleRepository repository;
+    @Inject
+    private VehicleRepository repository;
 
-    public VehicleService(VehicleRepository repository) {
-        this.repository = repository;
-    }
-
-    @Transactional
-    public Vehicle create(CreateVehicleDTO dto) {
+    @WithTransaction
+    public Uni<Vehicle> create(CreateVehicleDTO dto) {
         Vehicle vehicle = new Vehicle();
         vehicle.placa = dto.placa;
         vehicle.marca = dto.marca;
         vehicle.modelo = dto.modelo;
         vehicle.annio = dto.annio;
-        repository.persist(vehicle);
-        return vehicle;
+        return repository.persist(vehicle);
     }
 
-    public List<Vehicle> list() {
+    @WithSession
+    public Uni<List<Vehicle>> findAll() {
         return repository.listAll();
     }
 
-    public Vehicle get(Long id) {
-        Vehicle vehicle =  repository.findById(id);
-        if (vehicle == null) {
-            throw new BusinessException(404,
-                    "USER_NOT_FOUND",
-                    "User not found with id: " + id
-            );
-        }
-        return vehicle;
+
+    public Multi<Vehicle> list() {
+        return this.findAll()
+                .onItem()
+                .transformToMulti(list -> Multi.createFrom().iterable(list));
     }
 
-    @Transactional
-    public Vehicle update(Long id, UpdateVehicleDTO dto) {
-        Vehicle vehicle = repository.findById(id);
-        if (vehicle == null) {
-            throw new BusinessException(404,
-                    "USER_NOT_FOUND",
-                    "User not found with id: " + id
-            );
-        }
-        vehicle.marca = dto.marca != null ? dto.marca : vehicle.marca;
-        vehicle.modelo = dto.modelo != null ? dto.modelo : vehicle.modelo;
-        vehicle.annio = dto.annio != null ? dto.annio : vehicle.annio;
-        return vehicle;
+    public Uni<Vehicle> get(Long id) {
+        return repository.findById(id)
+                .onItem().ifNull().failWith(() ->
+                        new BusinessException(
+                                404,
+                                "USER_NOT_FOUND",
+                                "User not found with id: " + id
+                        )
+                );
     }
 
-    @Transactional
-    public boolean delete(Long id) {
-        return repository.deleteById(id);
+    @WithTransaction
+    public Uni<Vehicle> update(Long id, UpdateVehicleDTO dto) {
+        return repository.findById(id)
+                .onItem().ifNull().failWith(() ->
+                        new BusinessException(
+                                404,
+                                "USER_NOT_FOUND",
+                                "User not found with id: " + id
+                        )
+                )
+                .flatMap(vehicle -> {
+                    vehicle.marca = dto.marca;
+                    vehicle.modelo = dto.modelo;
+                    vehicle.annio = dto.annio;
+                    return repository.persist(vehicle);
+                });
+    }
+
+    @WithTransaction
+    public Uni<Void> delete(Long id) {
+        return repository.findById(id)
+                .onItem().ifNull().failWith(() ->
+                        new BusinessException(
+                                404,
+                                "USER_NOT_FOUND",
+                                "User not found with id: " + id
+                        )
+                )
+                .flatMap(vehicle -> repository.delete(vehicle));
     }
 }

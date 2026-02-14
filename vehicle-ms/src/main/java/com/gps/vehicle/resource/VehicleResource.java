@@ -4,6 +4,8 @@ import com.gps.vehicle.dto.CreateVehicleDTO;
 import com.gps.vehicle.dto.UpdateVehicleDTO;
 import com.gps.vehicle.entity.Vehicle;
 import com.gps.vehicle.service.VehicleService;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -20,32 +22,37 @@ public class VehicleResource {
     VehicleService service;
 
     @POST
-    public Response create(CreateVehicleDTO dto) {
-        Vehicle vehicle = service.create(dto);
-        return Response.status(Response.Status.CREATED).entity(vehicle).build();
+    public Uni<Response> create(CreateVehicleDTO dto) {
+        return service.create(dto)
+                .onItem()
+                .transform(p ->
+                        Response.status(Response.Status.CREATED).entity(p).build());
     }
 
     @GET
-    public List<Vehicle> list() {
+    public Multi<Vehicle> list() {
         return service.list();
     }
 
     @GET
     @Path("/{id}")
-    public Vehicle get(@PathParam("id") Long id) {
-        return service.get(id);
+    public Uni<Response> get(@PathParam("id") Long id) {
+        return service.get(id)
+                .onItem().ifNotNull().transform(p -> Response.ok(p).build())
+                .onItem().ifNull().continueWith(Response.status(Response.Status.NOT_FOUND)::build);
     }
 
     @PUT
     @Path("/{id}")
-    public Vehicle update(@PathParam("id") Long id, UpdateVehicleDTO dto) {
-        return service.update(id, dto);
+    public Uni<Response> update(@PathParam("id") Long id, UpdateVehicleDTO dto) {
+        return service.update(id, dto)
+                .onItem().transform(p -> Response.ok(p).build());
     }
 
     @DELETE
     @Path("/{id}")
-    public Response delete(@PathParam("id") Long id) {
-        boolean deleted = service.delete(id);
-        return deleted ? Response.noContent().build() : Response.status(Response.Status.NOT_FOUND).build();
+    public Uni<Response> delete(@PathParam("id") Long id) {
+        return service.delete(id)
+                .onItem().transform(v -> Response.noContent().build());
     }
 }

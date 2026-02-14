@@ -5,8 +5,10 @@ import com.gps.device.dto.UpdateDeviceDTO;
 import com.gps.device.entity.Device;
 import com.gps.device.exception.BusinessException;
 import com.gps.device.repository.DeviceRepository;
+import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
@@ -27,8 +29,15 @@ public class DeviceService {
         return repository.persist(device);
     }
 
-    public Uni<List<Device>> list() {
+    @WithSession
+    public Uni<List<Device>> findAll() {
         return repository.listAll();
+    }
+
+    public Multi<Device> list() {
+        return this.findAll()
+                .onItem()
+                .transformToMulti(list -> Multi.createFrom().iterable(list));
     }
 
     public Uni<Device> get(Long id) {

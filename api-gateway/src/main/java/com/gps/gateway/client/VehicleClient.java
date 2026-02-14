@@ -1,34 +1,34 @@
 package com.gps.gateway.client;
 
 import com.gps.gateway.dto.VehicleDTO;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
-import java.util.List;
 
 @Path("/api/vehicles")
+@Produces(MediaType.APPLICATION_JSON)
 @RegisterRestClient(configKey="vehicle-api")
 public interface VehicleClient {
 
     @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    List<VehicleDTO> getAll();
+    Multi<VehicleDTO> getAll();
 
     @GET
     @Path("/{id}")
-    @Produces(MediaType.APPLICATION_JSON)
-    VehicleDTO getById(@PathParam("id") Long id);
+
+    Uni<VehicleDTO> getById(@PathParam("id") Long id);
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    void create(VehicleDTO dto);
+    Uni<Response> create(VehicleDTO dto);
 
     @PUT
     @Path("/{id}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    void update(@PathParam("id") Long id, VehicleDTO dto);
+    Uni<Response> update(@PathParam("id") Long id, VehicleDTO dto);
 
     @DELETE
     @Path("/{id}")
-    void delete(@PathParam("id") Long id);
+    Uni<Response> delete(@PathParam("id") Long id);
 }

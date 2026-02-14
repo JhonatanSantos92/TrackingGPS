@@ -3,6 +3,8 @@ package com.gps.gateway.resource;
 import com.gps.gateway.client.VehicleClient;
 import com.gps.gateway.dto.VehicleDTO;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -21,33 +23,34 @@ public class VehicleResource {
     VehicleClient vehicleClient;
 
     @GET
-    public List<VehicleDTO> getAll() {
+    public Multi<VehicleDTO> getAll() {
         return vehicleClient.getAll();
     }
 
     @GET
     @Path("/{id}")
-    public VehicleDTO getById(@PathParam("id") Long id) {
+    public Uni<VehicleDTO> getById(@PathParam("id") Long id) {
         return vehicleClient.getById(id);
     }
 
     @POST
-    public Response create(VehicleDTO dto) {
-        vehicleClient.create(dto);
-        return Response.status(Response.Status.CREATED).build();
+    public Uni<Response> create(VehicleDTO dto) {
+        return vehicleClient.create(dto)
+                .onFailure().recoverWithUni(f -> vehicleClient.create(dto));
+
     }
 
     @PUT
     @Path("/{id}")
-    public Response update(@PathParam("id") Long id, VehicleDTO dto) {
-        vehicleClient.update(id, dto);
-        return Response.ok().build();
+    public Uni<Response> update(@PathParam("id") Long id, VehicleDTO dto) {
+        return vehicleClient.update(id, dto)
+                .onFailure().recoverWithUni(f -> vehicleClient.update(id, dto));
     }
 
     @DELETE
     @Path("/{id}")
-    public Response delete(@PathParam("id") Long id) {
-        vehicleClient.delete(id);
-        return Response.noContent().build();
+    public Uni<Response> delete(@PathParam("id") Long id) {
+        return vehicleClient.delete(id)
+                .onFailure().recoverWithUni(f -> vehicleClient.delete(id));
     }
 }

@@ -1,7 +1,11 @@
 package com.gps.user.resource;
 
+import com.gps.user.dto.UserDTO;
 import com.gps.user.entity.User;
 import com.gps.user.service.UserService;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -20,65 +24,41 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 public class UserResource {
 
-    private final UserService userService;
-
-    public UserResource(UserService userService) {
-        this.userService = userService;
-    }
+    @Inject
+    UserService service;
 
     @POST
-    public Response create(User user) {
-        User created = userService.create(
-                user.nombre,
-                user.correo
-        );
-        return Response
-                .status(Response.Status.CREATED)
-                .entity(created)
-                .build();
+    public Uni<Response> create(UserDTO user) {
+        return service.create(user)
+                .onItem()
+                .transform(p ->
+                        Response.status(Response.Status.CREATED).entity(p).build());
     }
 
     @GET
-    public List<User> findAll() {
-        return userService.findAll();
+    public Multi<User> list() {
+        return service.list();
     }
 
     @GET
     @Path("/{id}")
-    public Response findById(@PathParam("id") Long id) {
-        User user = userService.findById(id);
-        if (user == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-
-        return Response.ok(user).build();
+    public Uni<Response> get(@PathParam("id") Long id) {
+        return service.get(id)
+                .onItem().ifNotNull().transform(p -> Response.ok(p).build())
+                .onItem().ifNull().continueWith(Response.status(Response.Status.NOT_FOUND)::build);
     }
 
     @PUT
     @Path("/{id}")
-    public Response update(@PathParam("id") Long id, User user) {
-        User updated = userService.update(
-                id,
-                user.nombre,
-                user.correo,
-                user.status
-        );
-
-        if (updated == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-
-        return Response.ok(updated).build();
+    public Uni<Response> update(@PathParam("id") Long id, UserDTO user) {
+        return service.update(id, user)
+                .onItem().transform(p -> Response.ok(p).build());
     }
 
     @DELETE
     @Path("/{id}")
-    public Response delete(@PathParam("id") Long id) {
-        boolean deleted = userService.delete(id);
-        if (!deleted) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-
-        return Response.noContent().build();
+    public Uni<Response> delete(@PathParam("id") Long id) {
+        return service.delete(id)
+                .onItem().transform(v -> Response.noContent().build());
     }
 }

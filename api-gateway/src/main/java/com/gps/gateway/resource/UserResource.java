@@ -4,13 +4,14 @@ import com.gps.gateway.client.BackupClient;
 import com.gps.gateway.client.UserClient;
 import com.gps.gateway.dto.UserDTO;
 
+import io.smallrye.mutiny.Multi;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
-import java.util.List;
+import io.smallrye.mutiny.Uni;
 
 @Path("/users")
 @Produces(MediaType.APPLICATION_JSON)
@@ -26,38 +27,68 @@ public class UserResource {
     BackupClient backupClient;
 
     @GET
-    public List<UserDTO> getAll() {
+    public Multi<UserDTO> getAll() {
         return userClient.getAll();
     }
 
     @GET
     @Path("/{id}")
-    public UserDTO getById(@PathParam("id") Long id) {
-        return userClient.getById(id);
+    public Uni<Response> getById(@PathParam("id") Long id) {
+        return userClient.getById(id)
+                .onFailure().recoverWithUni(f -> userClient.getById(id));
     }
 
     @POST
-    public Response create(UserDTO dto) {
-        try {
-            userClient.create(dto);
-            return Response.status(Response.Status.CREATED).build();
-        } catch (Exception e) {
-            backupClient.backup(dto);
-            return Response.status(Response.Status.CREATED).build();
-        }
+    public Uni<Response> create(UserDTO dto) {
+        return userClient.create(dto)
+                .flatMap(resp -> {
+                    int status = resp.getStatus();
+                    if (status >= 200 && status < 300) {
+                        return Uni.createFrom().item(Response.status(Response.Status.CREATED).build());
+                    }
+                    return backupClient.backup(dto)
+                            .flatMap(backupResp -> {
+                                int bStatus = backupResp.getStatus();
+                                if (bStatus >= 200 && bStatus < 300) {
+                                    return Uni.createFrom()
+                                            .item(Response.status(Response.Status.CREATED).build());
+                                }
+                                return Uni.createFrom()
+                                        .item(Response.status(Response.Status.BAD_GATEWAY)
+                                                .entity("Backup failed").build());
+                            });
+                })
+                .onFailure().recoverWithUni(f -> backupClient.backup(dto)
+                        .flatMap(backupResp -> {
+                            int bStatus = backupResp.getStatus();
+                            if (bStatus >= 200 && bStatus < 300) {
+                                return Uni.createFrom().
+                                        item(Response.status(Response.Status.CREATED)
+                                                .build());
+                            }
+                            return Uni.createFrom()
+                                    .item(Response
+                                            .status(Response.Status.BAD_GATEWAY)
+                                            .entity("Backup failed").build());
+                        })
+                        .onFailure()
+                        .recoverWithItem(backupEx -> Response
+                                .status(Response.Status.BAD_GATEWAY)
+                                .entity("Upstream failure")
+                                .build()));
     }
 
     @PUT
     @Path("/{id}")
-    public Response update(@PathParam("id") Long id, UserDTO dto) {
-        userClient.update(id, dto);
-        return Response.ok().build();
+    public Uni<Response> update(@PathParam("id") Long id, UserDTO dto) {
+        return userClient.update(id, dto)
+                .onFailure().recoverWithUni(f -> userClient.update(id, dto));
     }
 
     @DELETE
     @Path("/{id}")
-    public Response delete(@PathParam("id") Long id) {
-        userClient.delete(id);
-        return Response.noContent().build();
+    public Uni<Response> delete(@PathParam("id") Long id) {
+        return userClient.delete(id)
+                .onFailure().recoverWithUni(f -> userClient.delete(id));
     }
 }

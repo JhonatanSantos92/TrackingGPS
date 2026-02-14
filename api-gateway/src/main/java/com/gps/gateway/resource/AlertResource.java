@@ -2,6 +2,7 @@ package com.gps.gateway.resource;
 
 import com.gps.gateway.client.AlertsClient;
 import com.gps.gateway.dto.AlertDTO;
+import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -19,13 +20,13 @@ public class AlertResource {
     AlertsClient alertClient;
 
     @GET
-    public List<AlertDTO> getAll() {
+    public Uni<List<AlertDTO>> getAll() {
         return alertClient.getAll();
     }
 
     @GET
     @Path("/{id}")
-    public AlertDTO getById(@PathParam("id") Long id) {
+    public Uni<AlertDTO> getById(@PathParam("id") Long id) {
         return alertClient.getById(id);
     }
 

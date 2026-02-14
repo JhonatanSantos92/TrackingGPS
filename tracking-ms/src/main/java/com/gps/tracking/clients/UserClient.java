@@ -8,7 +8,6 @@ import jakarta.ws.rs.core.MediaType;
 
 @Path("/api/users")
 @RegisterRestClient(configKey = "user-ms")
-@Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public interface UserClient {
 

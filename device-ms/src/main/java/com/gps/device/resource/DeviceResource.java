@@ -4,13 +4,12 @@ import com.gps.device.dto.CreateDeviceDTO;
 import com.gps.device.dto.UpdateDeviceDTO;
 import com.gps.device.entity.Device;
 import com.gps.device.service.DeviceService;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-
-import java.util.List;
 
 @Path("/devices")
 @Produces(MediaType.APPLICATION_JSON)
@@ -29,20 +28,23 @@ public class DeviceResource {
     }
 
     @GET
-    public Uni<List<Device>> list() {
+    public Multi<Device> list() {
         return service.list();
     }
 
     @GET
     @Path("/{id}")
-    public Uni<Device> get(@PathParam("id") Long id) {
-        return service.get(id);
+    public Uni<Response> get(@PathParam("id") Long id) {
+        return service.get(id)
+                .onItem().ifNotNull().transform(p -> Response.ok(p).build())
+                .onItem().ifNull().continueWith(Response.status(Response.Status.NOT_FOUND)::build);
     }
 
     @PUT
     @Path("/{id}")
-    public Uni<Device> update(@PathParam("id") Long id, UpdateDeviceDTO dto) {
-        return service.update(id, dto);
+    public Uni<Response> update(@PathParam("id") Long id, UpdateDeviceDTO dto) {
+        return service.update(id, dto)
+                .onItem().transform(p -> Response.ok(p).build());
     }
 
 }

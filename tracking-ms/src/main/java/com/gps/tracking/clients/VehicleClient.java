@@ -2,7 +2,6 @@ package com.gps.tracking.clients;
 
 import com.gps.tracking.dto.VehicleDTO;
 import io.smallrye.mutiny.Uni;
-import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -17,6 +16,5 @@ public interface VehicleClient {
 
     @GET
     @Path("/{id}")
-    @Retry(maxRetries = 1, delay = 200)
     Uni<VehicleDTO> getById(@PathParam("id") Long id);
 }
