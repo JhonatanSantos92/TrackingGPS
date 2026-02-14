@@ -41,41 +41,12 @@ public class UserResource {
     @POST
     public Uni<Response> create(UserDTO dto) {
         return userClient.create(dto)
-                .flatMap(resp -> {
-                    int status = resp.getStatus();
-                    if (status >= 200 && status < 300) {
-                        return Uni.createFrom().item(Response.status(Response.Status.CREATED).build());
-                    }
-                    return backupClient.backup(dto)
-                            .flatMap(backupResp -> {
-                                int bStatus = backupResp.getStatus();
-                                if (bStatus >= 200 && bStatus < 300) {
-                                    return Uni.createFrom()
-                                            .item(Response.status(Response.Status.CREATED).build());
-                                }
-                                return Uni.createFrom()
-                                        .item(Response.status(Response.Status.BAD_GATEWAY)
-                                                .entity("Backup failed").build());
-                            });
-                })
-                .onFailure().recoverWithUni(f -> backupClient.backup(dto)
-                        .flatMap(backupResp -> {
-                            int bStatus = backupResp.getStatus();
-                            if (bStatus >= 200 && bStatus < 300) {
-                                return Uni.createFrom().
-                                        item(Response.status(Response.Status.CREATED)
-                                                .build());
-                            }
-                            return Uni.createFrom()
-                                    .item(Response
-                                            .status(Response.Status.BAD_GATEWAY)
-                                            .entity("Backup failed").build());
-                        })
-                        .onFailure()
-                        .recoverWithItem(backupEx -> Response
-                                .status(Response.Status.BAD_GATEWAY)
-                                .entity("Upstream failure")
-                                .build()));
+                .flatMap(resp -> is2xx(resp) ? Uni.createFrom()
+                        .item(Response.status(Response.Status.CREATED)
+                            .entity("User created successfully")
+                            .build()) : tryBackup(dto))
+                .onFailure()
+                .recoverWithUni(f -> tryBackup(dto));
     }
 
     @PUT
@@ -90,5 +61,27 @@ public class UserResource {
     public Uni<Response> delete(@PathParam("id") Long id) {
         return userClient.delete(id)
                 .onFailure().recoverWithUni(f -> userClient.delete(id));
+    }
+
+    private Uni<Response> tryBackup(UserDTO dto) {
+        return backupClient.backup(dto)
+                .flatMap(backupResp -> is2xx(backupResp) ? Uni.createFrom().item(
+                    Response.status(Response.Status.CREATED)
+                            .entity("Backup successful, user created in backup system")
+                            .build()
+                ) : Uni.createFrom().item(
+                    Response.status(Response.Status.BAD_GATEWAY)
+                            .entity("Backup failed with status: " + backupResp.getStatus())
+                            .build()
+                        )
+                .onFailure().recoverWithItem(ex ->
+                    Response.status(Response.Status.BAD_GATEWAY)
+                            .entity("Backup failed: " + ex.getMessage())
+                            .build()
+                ));
+    }
+
+    private boolean is2xx(Response resp) {
+        return resp != null && resp.getStatus() >= 200 && resp.getStatus() < 300;
     }
 }
